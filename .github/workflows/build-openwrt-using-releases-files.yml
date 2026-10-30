@@ -419,7 +419,7 @@ jobs:
           df -Th
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Download OpenWrt [ ${{ matrix.branch }} ]
+      - name: Download OpenWrt 25.12.2 Stable
         id: down
         working-directory: /builder
         if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
@@ -429,20 +429,17 @@ jobs:
           ln -sf /builder/openwrt ${{ github.workspace }}/openwrt
           ln -sf /builder/openwrt /home/runner/work/_actions/ophub/amlogic-s9xxx-openwrt/main/openwrt
 
-          # 自动解析 25.12.2 目录并获取准确的 rootfs 文件名
-          BASE_URL="https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/"
-          openwrt_filename=$(curl -sL "${BASE_URL}" | grep -oE 'immortalwrt-[^"]*-rootfs\.tar\.gz' | head -n 1)
+          # 直接锁定官方 25.12.2 确切的文件名
+          openwrt_filename="immortalwrt-25.12.2-armsr-armv8-generic-rootfs.tar.gz"
+          download_url="https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/${openwrt_filename}"
 
-          # 如果找不到则退而求其次解析最新 25.12 分支
-          if [[ -z "${openwrt_filename}" ]]; then
-            BASE_URL="https://downloads.immortalwrt.org/releases/25.12-SNAPSHOT/targets/armsr/armv8/"
-            openwrt_filename=$(curl -sL "${BASE_URL}" | grep -oE 'immortalwrt-[^"]*-rootfs\.tar\.gz' | head -n 1)
+          # 如果上面那个名字不存在，备用尝试另一个可能的命名
+          if ! curl --output /dev/null --silent --head --fail "${download_url}"; then
+            openwrt_filename="immortalwrt-25.12.2-armsr-armv8-generic-targz-rootfs.tar.gz"
+            download_url="https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/${openwrt_filename}"
           fi
 
-          [[ -z "${openwrt_filename}" ]] && { echo "Error: Could not find valid rootfs.tar.gz in download directory."; exit 1; }
-
-          download_url="${BASE_URL}${openwrt_filename}"
-          echo "Found and Downloading: ${download_url}"
+          echo "Downloading from: ${download_url}"
           curl -fsSL "${download_url}" -o "${armsr_tarfile_path}/${openwrt_filename}"
           
           [[ "${?}" -ne "0" ]] && { echo "Error: Download failed."; exit 1; }
