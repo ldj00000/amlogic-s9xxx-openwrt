@@ -429,11 +429,20 @@ jobs:
           ln -sf /builder/openwrt ${{ github.workspace }}/openwrt
           ln -sf /builder/openwrt /home/runner/work/_actions/ophub/amlogic-s9xxx-openwrt/main/openwrt
 
-          # 直接指定官方 ImmortalWrt 25.12.2 稳定版 rootfs 直链
-          openwrt_filename="immortalwrt-25.12.2-armsr-armv8-generic-rootfs.tar.gz"
-          download_url="https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/${openwrt_filename}"
+          # 自动解析 25.12.2 目录并获取准确的 rootfs 文件名
+          BASE_URL="https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/"
+          openwrt_filename=$(curl -sL "${BASE_URL}" | grep -oE 'immortalwrt-[^"]*-rootfs\.tar\.gz' | head -n 1)
 
-          echo "Downloading 25.12.2 from: ${download_url}"
+          # 如果找不到则退而求其次解析最新 25.12 分支
+          if [[ -z "${openwrt_filename}" ]]; then
+            BASE_URL="https://downloads.immortalwrt.org/releases/25.12-SNAPSHOT/targets/armsr/armv8/"
+            openwrt_filename=$(curl -sL "${BASE_URL}" | grep -oE 'immortalwrt-[^"]*-rootfs\.tar\.gz' | head -n 1)
+          fi
+
+          [[ -z "${openwrt_filename}" ]] && { echo "Error: Could not find valid rootfs.tar.gz in download directory."; exit 1; }
+
+          download_url="${BASE_URL}${openwrt_filename}"
+          echo "Found and Downloading: ${download_url}"
           curl -fsSL "${download_url}" -o "${armsr_tarfile_path}/${openwrt_filename}"
           
           [[ "${?}" -ne "0" ]] && { echo "Error: Download failed."; exit 1; }
