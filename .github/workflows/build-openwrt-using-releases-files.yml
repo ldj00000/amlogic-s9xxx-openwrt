@@ -431,7 +431,7 @@ jobs:
 
           echo "Starting direct download of ImmortalWrt 25.12.2..."
           
-          # 直接写死直链下载，不使用任何变量代换
+          # 直接下载官方 25.12.2 稳定版核心包
           curl -fsSL "https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/immortalwrt-25.12.2-armsr-armv8-generic-targz-rootfs.tar.gz" -o "${armsr_tarfile_path}/immortalwrt-25.12.2-armsr-armv8-generic-targz-rootfs.tar.gz"
           
           if [ $? -ne 0 ]; then
@@ -443,22 +443,8 @@ jobs:
           echo "REPO_URL=https://github.com/immortalwrt/immortalwrt" >> ${GITHUB_ENV}
           echo "REPO_NAME=immortalwrt" >> ${GITHUB_ENV}
           echo "REPO_BRANCH=v25.12.2" >> ${GITHUB_ENV}
+          df -hT ${PWD}
           echo "status=success" >> ${GITHUB_OUTPUT}
-          
-          # Determine the OpenWrt source code repository
-          if [[ "${{ matrix.branch }}" =~ ^openwrt ]]; then
-              REPO_URL="https://github.com/openwrt/openwrt"
-          elif [[ "${{ matrix.branch }}" =~ ^lede ]]; then
-              REPO_URL="https://github.com/coolsnowwolf/lede"
-          elif [[ "${{ matrix.branch }}" =~ ^immortalwrt ]]; then
-              REPO_URL="https://github.com/immortalwrt/immortalwrt"
-          else
-              echo "Error: Unknown source code repository."
-              exit 1
-          fi
-          source_branch_input="${{ matrix.branch }}"
-          REPO_NAME="${source_branch_input%_*}"
-          REPO_BRANCH="${source_branch_input##*_}"
 
           armsr_tarfile_path="openwrt/output"
           [[ -d "${armsr_tarfile_path}" ]] || mkdir -p ${armsr_tarfile_path}
