@@ -424,6 +424,26 @@ jobs:
         working-directory: /builder
         if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
         run: |
+          armsr_tarfile_path="openwrt/output"
+          [[ -d "${armsr_tarfile_path}" ]] || mkdir -p ${armsr_tarfile_path}
+          ln -sf /builder/openwrt ${{ github.workspace }}/openwrt
+          ln -sf /builder/openwrt /home/runner/work/_actions/ophub/amlogic-s9xxx-openwrt/main/openwrt
+
+          # 直接指定官方 ImmortalWrt 25.12.2 稳定版 rootfs 直链
+          openwrt_filename="immortalwrt-25.12.2-armsr-armv8-generic-rootfs.tar.gz"
+          download_url="https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/${openwrt_filename}"
+
+          echo "Downloading 25.12.2 from: ${download_url}"
+          curl -fsSL "${download_url}" -o "${armsr_tarfile_path}/${openwrt_filename}"
+          
+          [[ "${?}" -ne "0" ]] && { echo "Error: Download failed."; exit 1; }
+
+          echo "build_tag=ImmortalWrt_25.12.2_stable_$(date +"%Y.%m")" >> ${GITHUB_ENV}
+          echo "REPO_URL=https://github.com/immortalwrt/immortalwrt" >> ${GITHUB_ENV}
+          echo "REPO_NAME=immortalwrt" >> ${GITHUB_ENV}
+          echo "REPO_BRANCH=v25.12.2" >> ${GITHUB_ENV}
+          echo "status=success" >> ${GITHUB_OUTPUT}
+          
           # Determine the OpenWrt source code repository
           if [[ "${{ matrix.branch }}" =~ ^openwrt ]]; then
               REPO_URL="https://github.com/openwrt/openwrt"
