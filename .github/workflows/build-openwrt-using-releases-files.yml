@@ -425,24 +425,19 @@ jobs:
         if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
         run: |
           armsr_tarfile_path="openwrt/output"
-          [[ -d "${armsr_tarfile_path}" ]] || mkdir -p ${armsr_tarfile_path}
+          mkdir -p "${armsr_tarfile_path}"
           ln -sf /builder/openwrt ${{ github.workspace }}/openwrt
           ln -sf /builder/openwrt /home/runner/work/_actions/ophub/amlogic-s9xxx-openwrt/main/openwrt
 
-          # 直接锁定官方 25.12.2 确切的文件名
-          openwrt_filename="immortalwrt-25.12.2-armsr-armv8-generic-rootfs.tar.gz"
-          download_url="https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/${openwrt_filename}"
-
-          # 如果上面那个名字不存在，备用尝试另一个可能的命名
-          if ! curl --output /dev/null --silent --head --fail "${download_url}"; then
-            openwrt_filename="immortalwrt-25.12.2-armsr-armv8-generic-targz-rootfs.tar.gz"
-            download_url="https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/${openwrt_filename}"
-          fi
-
-          echo "Downloading from: ${download_url}"
-          curl -fsSL "${download_url}" -o "${armsr_tarfile_path}/${openwrt_filename}"
+          echo "Starting direct download of ImmortalWrt 25.12.2..."
           
-          [[ "${?}" -ne "0" ]] && { echo "Error: Download failed."; exit 1; }
+          # 直接写死直链下载，不使用任何变量代换
+          curl -fsSL "https://downloads.immortalwrt.org/releases/25.12.2/targets/armsr/armv8/immortalwrt-25.12.2-armsr-armv8-generic-targz-rootfs.tar.gz" -o "${armsr_tarfile_path}/immortalwrt-25.12.2-armsr-armv8-generic-targz-rootfs.tar.gz"
+          
+          if [ $? -ne 0 ]; then
+            echo "Error: Download failed."
+            exit 1
+          fi
 
           echo "build_tag=ImmortalWrt_25.12.2_stable_$(date +"%Y.%m")" >> ${GITHUB_ENV}
           echo "REPO_URL=https://github.com/immortalwrt/immortalwrt" >> ${GITHUB_ENV}
